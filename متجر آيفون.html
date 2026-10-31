@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>متجر آيفون</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<style>
+:root{--bg:#f2f3f5;--ink:#14161a;--mute:#6b7280;--card:#fff;--line:#e3e5e9;--accent:#2f5bff}
+*{box-sizing:border-box;margin:0}
+body{font-family:'Tajawal',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+header{display:flex;justify-content:space-between;align-items:center;padding:16px 5vw;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.logo{font-weight:800;font-size:1.3rem}
+.cart-btn{background:var(--ink);color:#fff;border:0;border-radius:99px;padding:9px 18px;font:inherit;font-weight:700;cursor:pointer}
+.cart-btn:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.hero{padding:64px 5vw 40px;max-width:900px}
+.hero h1{font-size:clamp(2.2rem,7vw,4.2rem);font-weight:800;line-height:1.15;letter-spacing:-.5px}
+.hero p{color:var(--mute);font-size:1.15rem;margin-top:14px;max-width:520px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px;padding:20px 5vw 70px}
+.card{background:var(--card);border-radius:22px;padding:22px;display:flex;flex-direction:column}
+.shot{height:200px;border-radius:16px;display:grid;place-items:center;margin-bottom:18px}
+.phone{width:84px;height:164px;border-radius:20px;border:4px solid rgba(0,0,0,.85);position:relative}
+.phone::before{content:"";position:absolute;top:7px;left:50%;transform:translateX(-50%);width:26px;height:7px;border-radius:9px;background:rgba(0,0,0,.85)}
+.card h3{font-size:1.35rem;font-weight:800}
+.spec{color:var(--mute);font-size:.95rem;margin:4px 0 14px}
+.price{font-weight:800;font-size:1.25rem;margin-top:auto}
+.add{margin-top:14px;background:var(--accent);color:#fff;border:0;border-radius:12px;padding:12px;font:inherit;font-weight:700;cursor:pointer}
+.add:active{transform:scale(.98)}
+aside{position:fixed;top:0;bottom:0;left:0;width:min(420px,100%);background:var(--card);box-shadow:0 0 40px rgba(0,0,0,.2);transform:translateX(-105%);transition:transform .25s;z-index:10;display:flex;flex-direction:column;padding:22px}
+aside.open{transform:none}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.top h2{font-size:1.3rem}
+.x{background:none;border:0;font-size:1.6rem;cursor:pointer;color:var(--ink)}
+#items{flex:1;overflow:auto}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+.qty{display:flex;align-items:center;gap:8px}
+.qty button{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:1.1rem;cursor:pointer}
+.empty{color:var(--mute);padding:30px 0;text-align:center}
+form{display:grid;gap:10px;margin-top:14px}
+input,textarea{font:inherit;padding:11px 12px;border:1px solid var(--line);border-radius:10px;width:100%}
+.total{display:flex;justify-content:space-between;font-weight:800;font-size:1.15rem;margin-top:12px}
+.send{background:#16a34a;color:#fff;border:0;border-radius:12px;padding:14px;font:inherit;font-weight:800;font-size:1.05rem;cursor:pointer}
+.note{color:var(--mute);font-size:.85rem;text-align:center}
+.shade{position:fixed;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .25s;z-index:9}
+.shade.open{opacity:1;pointer-events:auto}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">متجر آيفون</div>
+  <button class="cart-btn" id="openCart">السلة (<span id="count">0</span>)</button>
+</header>
+
+<section class="hero">
+  <h1>أحدث الآيفونات، توصلك لحد بابك.</h1>
+  <p>اختار الموبايل، اكتب بياناتك، وأوردرك يوصلنا على واتساب. الدفع عند الاستلام.</p>
+</section>
+
+<main class="grid" id="grid"></main>
+
+<div class="shade" id="shade"></div>
+<aside id="cart" aria-label="السلة">
+  <div class="top"><h2>سلتك</h2><button class="x" id="closeCart" aria-label="إغلاق">×</button></div>
+  <div id="items"></div>
+  <div class="total"><span>الإجمالي</span><span id="total">0</span></div>
+  <form id="form">
+    <input id="name" placeholder="الاسم" required>
+    <input id="phone" type="tel" placeholder="رقم التليفون" required>
+    <textarea id="addr" rows="2" placeholder="العنوان بالتفصيل" required></textarea>
+    <button class="send" type="submit">إرسال الأوردر على واتساب</button>
+    <div class="note">الدفع عند الاستلام</div>
+  </form>
+</aside>
+
+<script>
+// ===== عدّل من هنا =====
+const WHATSAPP = "201274284463";   // الرقم بصيغة دولية (مصر 20 + الرقم من غير الصفر)
+const CURRENCY = "جنيه";
+const PRODUCTS = [
+  {id:1, name:"آيفون 11",         spec:"128 جيجا · كاميرا مزدوجة", price:18000, color:"#dfe8f7"},
+  {id:2, name:"آيفون 12",         spec:"128 جيجا · شاشة OLED",     price:24000, color:"#e6f0e4"},
+  {id:3, name:"آيفون 13",         spec:"128 جيجا · بطارية أقوى",   price:30000, color:"#f6e3e6"},
+  {id:4, name:"آيفون 14 Pro",     spec:"256 جيجا · Dynamic Island", price:45000, color:"#ece6f5"},
+  {id:5, name:"آيفون 15 Pro Max", spec:"256 جيجا · تيتانيوم",       price:60000, color:"#e9e9e6"}
+];
+// ======================
+
+const cart = {};
+const fmt = n => n.toLocaleString("ar-EG") + " " + CURRENCY;
+const $ = id => document.getElementById(id);
+
+$("grid").innerHTML = PRODUCTS.map(p => `
+  <article class="card">
+    <div class="shot" style="background:${p.color}"><div class="phone"></div></div>
+    <h3>${p.name}</h3>
+    <div class="spec">${p.spec}</div>
+    <div class="price">${fmt(p.price)}</div>
+    <button class="add" data-id="${p.id}">أضف للسلة</button>
+  </article>`).join("");
+
+$("grid").addEventListener("click", e => {
+  const b = e.target.closest(".add"); if(!b) return;
+  const id = +b.dataset.id;
+  cart[id] = (cart[id] || 0) + 1;
+  render(); toggle(true);
+});
+
+$("items").addEventListener("click", e => {
+  const b = e.target.closest("[data-d]"); if(!b) return;
+  const id = +b.dataset.id;
+  cart[id] += +b.dataset.d;
+  if(cart[id] <= 0) delete cart[id];
+  render();
+});
+
+function render(){
+  const ids = Object.keys(cart).map(Number);
+  let total = 0, count = 0;
+  $("items").innerHTML = ids.length ? ids.map(id => {
+    const p = PRODUCTS.find(x => x.id === id), q = cart[id];
+    total += p.price * q; count += q;
+    return `<div class="row"><div><strong>${p.name}</strong><div class="spec" style="margin:0">${fmt(p.price)}</div></div>
+      <div class="qty"><button data-id="${id}" data-d="-1" aria-label="تقليل">−</button><span>${q}</span><button data-id="${id}" data-d="1" aria-label="زيادة">+</button></div></div>`;
+  }).join("") : '<div class="empty">السلة فاضية. أضف موبايل من القائمة.</div>';
+  $("total").textContent = fmt(total);
+  $("count").textContent = count;
+}
+
+function toggle(open){
+  $("cart").classList.toggle("open", open);
+  $("shade").classList.toggle("open", open);
+}
+$("openCart").onclick = () => toggle(true);
+$("closeCart").onclick = $("shade").onclick = () => toggle(false);
+
+$("form").addEventListener("submit", e => {
+  e.preventDefault();
+  const ids = Object.keys(cart).map(Number);
+  if(!ids.length){ alert("السلة فاضية. أضف موبايل الأول."); return; }
+  let total = 0;
+  const lines = ids.map(id => {
+    const p = PRODUCTS.find(x => x.id === id), q = cart[id];
+    total += p.price * q;
+    return `- ${p.name} × ${q} = ${fmt(p.price * q)}`;
+  });
+  const msg = `أوردر جديد\n\n${lines.join("\n")}\n\nالإجمالي: ${fmt(total)}\n\nالاسم: ${$("name").value}\nالتليفون: ${$("phone").value}\nالعنوان: ${$("addr").value}\nالدفع: عند الاستلام`;
+  window.location.href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`;
+});
+
+render();
+</script>
+</body>
+</html>
